@@ -40,21 +40,14 @@ void CFG::genGraphiz(const std::string &filename)
     fstr.close();
 }
 
-void CFG::dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder)
+void CFG::dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder, std::vector<BasicBlock*> *postorder)
 {
     bb->isVisited = true;
     if (preorder) preorder->push_back(bb);
     for (auto succ: bb->succs) {
-        if (!succ->isVisited) dfs(succ, preorder);
+        if (!succ->isVisited) dfs(succ, preorder, postorder);
     }
-}
-
-std::vector<BasicBlock*> CFG::computePreOrder()
-{
-    std::vector<BasicBlock*> preorder(bbs.size());
-    unvisitBBs();
-    dfs(entryBB, &preorder);
-    return std::move(preorder);
+    if (postorder) postorder->push_back(bb);
 }
 
 void CFG::unvisitBBs()
@@ -64,24 +57,53 @@ void CFG::unvisitBBs()
     }
 }
 
-void CFG::computeDominators()
+void CFG::computeDominators(std::vector<BasicBlock*> &preorder)
 {
-    auto preorder = computePreOrder();
     for (auto v: preorder) {
         unvisitBBs();
         v->isVisited = true;
-        dfs(entryBB, nullptr);
+        dfs(entryBB, nullptr, nullptr);
         for (auto bb: bbs) {
             if (!bb->isVisited) {
                 bb->idom = v;
             }
         }
     }
+    for (auto par: bbs) {
+        for (auto child: bbs) {
+            if (par != child && par == child->idom) {
+                par->children.push_back(child);
+            }
+        }
+    }
+}
+
+std::map<BasicBlock*, std::set<BasicBlock*>> CFG::computeDF(std::vector<BasicBlock*> &postorder)
+{
+    std::map<BasicBlock*, std::set<BasicBlock*>> df;
+    for (auto bb: postorder) {
+        for (auto succ: bb->succs) {
+            if (bb != succ->idom) {
+                df[bb].insert(succ);
+            }
+        }
+        for (auto child: bb->children) {
+            for (auto y: df[child]) {
+                if (y->idom != bb) df[bb].insert(y);
+            }
+        }
+    }
+    return std::move(df);
 }
 
 void CFG::toSsa()
 {
-
+    std::vector<BasicBlock*> preorder(bbs.size());
+    std::vector<BasicBlock*> postorder(bbs.size());
+    unvisitBBs();
+    dfs(entryBB, &preorder, &postorder);
+    computeDominators(preorder);
+    auto df = computeDF(postorder);
 }
 
 static InstrOp mapToInstrOp(ASTArithOp op)

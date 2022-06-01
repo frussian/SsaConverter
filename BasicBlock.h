@@ -66,6 +66,7 @@ public:
     std::vector<Instr*> instrs;
     bool isVisited = false;
     BasicBlock *idom = nullptr;
+    std::vector<BasicBlock*> children;
     static int guid;
 };
 

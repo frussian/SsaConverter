@@ -8,6 +8,9 @@
 #include "Parser.h"
 #include "BasicBlock.h"
 
+#include <map>
+#include <set>
+
 class CFG {
 public:
     CFG(StmtsNode *stmts): stmts(stmts){};
@@ -20,13 +23,11 @@ private:
     StmtsNode *stmts;
     BasicBlock *entryBB;
 
-    std::vector<BasicBlock *> computePreOrder();
-
-    void dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder);
+    void dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder, std::vector<BasicBlock*> *postorder);
 
     void unvisitBBs();
-
-    void computeDominators();
+    std::map<BasicBlock*, std::set<BasicBlock*>> computeDF(std::vector<BasicBlock*> &postorder);
+    void computeDominators(std::vector<BasicBlock*> &preorder);
 };
 
 
