@@ -1,0 +1,25 @@
+{
+    int a
+    a = 14
+    a = 354*a * (-1)
+    if a > 0 {
+        a = 1
+        if a == 1 {
+            a = 0
+        }
+        if a == 0 {
+            a = -1
+        }
+    }
+
+    for {
+        if a - 2 > 0 {
+            if  a > 0 {
+                return a * 25
+            }
+        }
+        a = a+1
+    }
+
+    return a*2
+}

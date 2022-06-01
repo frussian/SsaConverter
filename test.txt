@@ -1,0 +1,15 @@
+{
+    int a
+    a = 234
+    a = ((123 - 1234)*23 + 12)*(-1)*(1 + 2)
+    for {
+        int tr
+        tr = tr + 2*(tr + 5)
+
+        if tr > 4 + 2 {
+            break
+        }
+    }
+
+    return a
+}

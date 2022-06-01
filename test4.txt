@@ -1,0 +1,19 @@
+{
+
+    int x1, x2
+    x1 = 56
+    x2 = x1 + 1 * 234
+    int i
+    i = 0
+    if x2 > -x1 {
+        int i
+        for {
+            if x2 < x1 {
+                break
+            }
+            x2 = x2 - 1
+            i = i + 1
+        }
+    }
+    return x2 / 2
+}
