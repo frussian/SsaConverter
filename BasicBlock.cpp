@@ -5,7 +5,7 @@
 #include "BasicBlock.h"
 #include "CFG.h"
 
-int BasicBlock::guid = 1;
+int BasicBlock::guid = 0;
 
 BasicBlock::BasicBlock(CFG *cfg, std::vector<Instr*> instrs):
         instrs(std::move(instrs)) {

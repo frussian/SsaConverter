@@ -13,11 +13,20 @@ public:
     CFG(StmtsNode *stmts): stmts(stmts){};
     void genCFG();
     void genGraphiz(const std::string &filename);
+    void toSsa();
     BasicBlock *insertPoint;
     std::vector<BasicBlock*> bbs;
 private:
     StmtsNode *stmts;
     BasicBlock *entryBB;
+
+    std::vector<BasicBlock *> computePreOrder();
+
+    void dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder);
+
+    void unvisitBBs();
+
+    void computeDominators();
 };
 
 

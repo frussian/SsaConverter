@@ -40,6 +40,50 @@ void CFG::genGraphiz(const std::string &filename)
     fstr.close();
 }
 
+void CFG::dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder)
+{
+    bb->isVisited = true;
+    if (preorder) preorder->push_back(bb);
+    for (auto succ: bb->succs) {
+        if (!succ->isVisited) dfs(succ, preorder);
+    }
+}
+
+std::vector<BasicBlock*> CFG::computePreOrder()
+{
+    std::vector<BasicBlock*> preorder(bbs.size());
+    unvisitBBs();
+    dfs(entryBB, &preorder);
+    return std::move(preorder);
+}
+
+void CFG::unvisitBBs()
+{
+    for (auto bb: bbs) {
+        bb->isVisited = false;
+    }
+}
+
+void CFG::computeDominators()
+{
+    auto preorder = computePreOrder();
+    for (auto v: preorder) {
+        unvisitBBs();
+        v->isVisited = true;
+        dfs(entryBB, nullptr);
+        for (auto bb: bbs) {
+            if (!bb->isVisited) {
+                bb->idom = v;
+            }
+        }
+    }
+}
+
+void CFG::toSsa()
+{
+
+}
+
 static InstrOp mapToInstrOp(ASTArithOp op)
 {
     switch (op) {

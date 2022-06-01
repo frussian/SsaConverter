@@ -64,6 +64,8 @@ public:
     void createCondBr(InstrOperand* cond, BasicBlock *thenBB, BasicBlock *elseBB);
     std::vector<BasicBlock*> preds, succs;
     std::vector<Instr*> instrs;
+    bool isVisited = false;
+    BasicBlock *idom = nullptr;
     static int guid;
 };
 
