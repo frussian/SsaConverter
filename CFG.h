@@ -10,6 +10,7 @@
 
 #include <map>
 #include <set>
+#include <deque>
 
 class CFG {
 public:
@@ -29,7 +30,7 @@ private:
     static std::map<BasicBlock*, std::set<BasicBlock*>> computeDF(std::vector<BasicBlock*> &postorder);
     void computeDominators(std::vector<BasicBlock*> &preorder);
 
-    std::map<std::string, std::set<BasicBlock *>> computeVarUsage();
+    void computeVarUsage();
 
     static std::set<BasicBlock *> computeDFForSet(const std::set<BasicBlock *> &vs, std::map<BasicBlock *, std::set<BasicBlock *>> &df);
 
@@ -37,6 +38,15 @@ private:
     computeDFIterable(const std::set<BasicBlock *> &vs, std::map<BasicBlock *, std::set<BasicBlock *>> &df);
 
     void placePhis(std::map<BasicBlock *, std::set<BasicBlock *>> &df);
+
+    std::deque<int> stack;
+    int counter = 0;
+
+    void traverse(BasicBlock *bb, std::string &var);
+
+    void renameVar(std::string &var);
+
+    std::map<std::string, std::set<BasicBlock*>> usages;
 };
 
 

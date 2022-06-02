@@ -35,6 +35,7 @@ public:
         num(num), isIdent(false) {};
 
     std::string name;
+    int ver = 0;
     int num;
     bool isIdent;
     friend std::ostream& operator<<(std::ostream &strm, InstrOperand&ins);
@@ -68,6 +69,7 @@ public:
     BasicBlock *idom = nullptr;
     std::vector<BasicBlock*> children;
     static int guid;
+    std::vector<Instr*> phis;
 };
 
 

@@ -103,10 +103,7 @@ std::map<BasicBlock*, std::set<BasicBlock*>> CFG::computeDF(std::vector<BasicBlo
     return std::move(df);
 }
 
-std::map<std::string, std::set<BasicBlock*>> CFG::computeVarUsage()
-{
-    std::map<std::string, std::set<BasicBlock*>> usages;
-
+void CFG::computeVarUsage() {
     for (auto bb: bbs) {
         for (auto stmt: bb->instrs) {
             if (stmt->lhs && stmt->lhs->isIdent) {
@@ -115,7 +112,7 @@ std::map<std::string, std::set<BasicBlock*>> CFG::computeVarUsage()
         }
     }
 
-    for (auto p: usages) {
+    for (const auto &p: usages) {
         auto var = p.first;
         std::cout << var << " used in ";
         for (auto usage: p.second) {
@@ -123,8 +120,6 @@ std::map<std::string, std::set<BasicBlock*>> CFG::computeVarUsage()
         }
         std::cout << std::endl;
     }
-
-    return std::move(usages);
 }
 
 std::set<BasicBlock*> CFG::computeDFForSet(const std::set<BasicBlock*> &vs, std::map<BasicBlock*, std::set<BasicBlock*>> &df)
@@ -158,8 +153,6 @@ std::set<BasicBlock*> CFG::computeDFIterable(const std::set<BasicBlock*> &vs, st
 
 void CFG::placePhis(std::map<BasicBlock*, std::set<BasicBlock*>> &df)
 {
-    auto usages = computeVarUsage();
-
     for (const auto& v: usages) {
         auto phiset = computeDFIterable(v.second, df);
         for (auto bb: phiset) {
@@ -167,8 +160,59 @@ void CFG::placePhis(std::map<BasicBlock*, std::set<BasicBlock*>> &df)
             Instr *phi = new Instr(lhs, InstrOp::PHI);
             phi->phiRhs.insert(phi->phiRhs.begin(), bb->preds.size(), v.first);
             bb->instrs.insert(bb->instrs.begin(), phi);
+            bb->phis.push_back(phi);
         }
     }
+}
+
+void CFG::traverse(BasicBlock *bb, std::string &var)
+{
+    for (auto ins: bb->instrs) {
+        if (ins->op != InstrOp::PHI) {
+            if (ins->rhs1 && ins->rhs1->isIdent && ins->rhs1->name == var) {
+                ins->rhs1->ver = stack.front();
+            } else if (ins->rhs2 && ins->rhs2->isIdent && ins->rhs2->name == var) {
+                ins->rhs2->ver = stack.front();
+            }
+        }
+
+        if (ins->lhs && ins->lhs->isIdent && ins->lhs->name == var) {
+            ins->lhs->ver = counter;
+            counter++;
+        }
+    }
+
+    for (auto succ: bb->succs) {
+        auto it = std::find(succ->preds.begin(), succ->preds.end(), bb);
+        long index = it - succ->preds.begin();
+        if (index != succ->preds.size()) {
+            for (auto phi: succ->phis) {
+                if (phi->lhs->name == var) {
+                    phi->phiRhs[index] = var + "v_" + std::to_string(stack.front());
+                }
+            }
+        }
+    }
+
+    for (auto child: bb->children) {
+        traverse(child, var);
+    }
+
+    for (auto ins: bb->instrs) {
+        if (ins->lhs && ins->lhs->name == var) {
+            stack.pop_front();
+        }
+    }
+
+}
+
+void CFG::renameVar(std::string &var)
+{
+    stack.clear();
+    stack.push_front(0);
+    counter = 0;
+    std::cout << "renaming " << var << std::endl;
+    traverse(entryBB, var);
 }
 
 void CFG::toSsa()
@@ -180,9 +224,14 @@ void CFG::toSsa()
     for (int i = 0; i < preorder.size(); i++) {
         std::cout << preorder.at(i)->id << " ";
     }
+    std::cout << std::endl;
     computeDominators(preorder);
     auto df = computeDF(postorder);
+    computeVarUsage();
     placePhis(df);
+    for (auto p: usages) {
+        renameVar(const_cast<std::string &>(p.first));
+    }
 }
 
 static InstrOp mapToInstrOp(ASTArithOp op)
@@ -255,7 +304,7 @@ InstrOperand *DefNode::fold(CFG *cfg)
 
     for (const auto &name: names) {
         auto def = new InstrOperand(name);
-        auto instr = new Instr(def, InstrOp::ALLOCA);
+        auto instr = new Instr(nullptr, InstrOp::ALLOCA, def);
         bb->instrs.push_back(instr);
     }
     return nullptr;
@@ -337,7 +386,7 @@ InstrOperand *ReturnNode::fold(CFG *cfg)
 {
     BasicBlock *bb = cfg->insertPoint;
     auto retVal = expr->fold(cfg);
-    auto ret = new Instr(retVal, InstrOp::RET);
+    auto ret = new Instr(nullptr, InstrOp::RET, retVal);
     bb->instrs.push_back(ret);
     return retVal;
 }

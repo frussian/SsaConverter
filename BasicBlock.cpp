@@ -20,7 +20,7 @@ void BasicBlock::createBr(BasicBlock *bb) {
 }
 
 void BasicBlock::createCondBr(InstrOperand *cond, BasicBlock *thenBB, BasicBlock *elseBB) {
-    auto condInstr = new Instr(cond, InstrOp::COND);
+    auto condInstr = new Instr(nullptr, InstrOp::COND, cond);
     instrs.push_back(condInstr);
     createBr(thenBB);
     createBr(elseBB);
@@ -57,7 +57,7 @@ std::ostream &operator<<(std::ostream &strm, Instr &ins) {
             break;
         }
         case InstrOp::ALLOCA: {
-            strm << "alloca " << *ins.lhs;
+            strm << "alloca " << *ins.rhs1;
             break;
         }
         case InstrOp::FOR: {
@@ -69,11 +69,11 @@ std::ostream &operator<<(std::ostream &strm, Instr &ins) {
             break;
         }
         case InstrOp::COND: {
-            strm << "cond_br " << *ins.lhs;
+            strm << "cond_br " << *ins.rhs1;
             break;
         }
         case InstrOp::RET: {
-            strm << "ret " << *ins.lhs;
+            strm << "ret " << *ins.rhs1;
             break;
         }
         case InstrOp::ASG: {
@@ -85,7 +85,7 @@ std::ostream &operator<<(std::ostream &strm, Instr &ins) {
             break;
         }
         case InstrOp::PHI: {
-            strm << "phi(";
+            strm << *ins.lhs << " = phi(";
             for (int i = 0; i < ins.phiRhs.size(); i++) {
                 auto v = ins.phiRhs[i];
                 if (i == ins.phiRhs.size() - 1) {
@@ -102,7 +102,7 @@ std::ostream &operator<<(std::ostream &strm, Instr &ins) {
 
 std::ostream &operator<<(std::ostream &strm, InstrOperand &op) {
     if (op.isIdent) {
-        strm << op.name;
+        strm << op.name << "v_" << op.ver;
     } else {
         strm << op.num;
     }
