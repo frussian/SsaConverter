@@ -26,8 +26,17 @@ private:
     void dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder, std::vector<BasicBlock*> *postorder);
 
     void unvisitBBs();
-    std::map<BasicBlock*, std::set<BasicBlock*>> computeDF(std::vector<BasicBlock*> &postorder);
+    static std::map<BasicBlock*, std::set<BasicBlock*>> computeDF(std::vector<BasicBlock*> &postorder);
     void computeDominators(std::vector<BasicBlock*> &preorder);
+
+    std::map<std::string, std::set<BasicBlock *>> computeVarUsage();
+
+    static std::set<BasicBlock *> computeDFForSet(const std::set<BasicBlock *> &vs, std::map<BasicBlock *, std::set<BasicBlock *>> &df);
+
+    static std::set<BasicBlock *>
+    computeDFIterable(const std::set<BasicBlock *> &vs, std::map<BasicBlock *, std::set<BasicBlock *>> &df);
+
+    void placePhis(std::map<BasicBlock *, std::set<BasicBlock *>> &df);
 };
 
 

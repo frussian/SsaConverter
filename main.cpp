@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
 //    CodeGen::genCode(prog.get());
     CFG cfg(prog.get());
     cfg.genCFG();
+    cfg.toSsa();
     cfg.genGraphiz("graph.out");
 
     return 0;

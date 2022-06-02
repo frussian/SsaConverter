@@ -50,7 +50,7 @@ public:
     InstrOp op;
     InstrOperand *rhs1;
     InstrOperand *rhs2;
-
+    std::vector<std::string> phiRhs;
     friend std::ostream& operator<<(std::ostream &strm, Instr&ins);
 };
 

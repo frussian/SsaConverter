@@ -3,6 +3,7 @@
 //
 
 #include <fstream>
+#include <iostream>
 #include "CFG.h"
 #include "BasicBlock.h"
 #include "Parser.h"
@@ -25,7 +26,7 @@ void CFG::genGraphiz(const std::string &filename)
         fstr << "\tbb_" << bb->id << " [" << std::endl;
         fstr << "\t\tstyle=filled," << std::endl;
         fstr << "\t\tshape=record," << std::endl;
-        fstr << "\t\tlabel=\"{\\n";
+        fstr << "\t\tlabel=\"{bb" << bb->id << "\\n";
 //        fstr << "\t\t\t\t" << bb->id << " |" << std::endl;
         for (auto ins: bb->instrs) {
             fstr << "\t\t\t"<< *ins << "\\n";
@@ -42,6 +43,7 @@ void CFG::genGraphiz(const std::string &filename)
 
 void CFG::dfs(BasicBlock *bb, std::vector<BasicBlock*> *preorder, std::vector<BasicBlock*> *postorder)
 {
+    if (bb->isVisited) return;
     bb->isVisited = true;
     if (preorder) preorder->push_back(bb);
     for (auto succ: bb->succs) {
@@ -59,6 +61,7 @@ void CFG::unvisitBBs()
 
 void CFG::computeDominators(std::vector<BasicBlock*> &preorder)
 {
+    entryBB->idom = entryBB;
     for (auto v: preorder) {
         unvisitBBs();
         v->isVisited = true;
@@ -75,6 +78,10 @@ void CFG::computeDominators(std::vector<BasicBlock*> &preorder)
                 par->children.push_back(child);
             }
         }
+    }
+
+    for (auto bb: bbs) {
+        std::cout << "bb " << bb->idom->id << " idom bb " << bb->id << std::endl;
     }
 }
 
@@ -96,14 +103,86 @@ std::map<BasicBlock*, std::set<BasicBlock*>> CFG::computeDF(std::vector<BasicBlo
     return std::move(df);
 }
 
+std::map<std::string, std::set<BasicBlock*>> CFG::computeVarUsage()
+{
+    std::map<std::string, std::set<BasicBlock*>> usages;
+
+    for (auto bb: bbs) {
+        for (auto stmt: bb->instrs) {
+            if (stmt->lhs && stmt->lhs->isIdent) {
+                usages[stmt->lhs->name].insert(bb);
+            }
+        }
+    }
+
+    for (auto p: usages) {
+        auto var = p.first;
+        std::cout << var << " used in ";
+        for (auto usage: p.second) {
+            std::cout << usage->id << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    return std::move(usages);
+}
+
+std::set<BasicBlock*> CFG::computeDFForSet(const std::set<BasicBlock*> &vs, std::map<BasicBlock*, std::set<BasicBlock*>> &df)
+{
+    std::set<BasicBlock*> res;
+    for (auto v: vs) {
+        auto s = df[v];
+        res.insert(s.begin(), s.end());
+    }
+    return std::move(res);
+}
+
+std::set<BasicBlock*> CFG::computeDFIterable(const std::set<BasicBlock*> &vs, std::map<BasicBlock*, std::set<BasicBlock*>> &df)
+{
+    std::set<BasicBlock*> res;
+    std::set<BasicBlock*> dfi = computeDFForSet(vs, df);
+    bool changed = false;
+
+    do {
+        changed = false;
+        dfi.insert(vs.begin(), vs.end());
+        dfi = computeDFForSet(dfi, df);
+        if (dfi != res) {
+            res = dfi;
+            changed = true;
+        }
+    } while (changed);
+
+    return res;
+}
+
+void CFG::placePhis(std::map<BasicBlock*, std::set<BasicBlock*>> &df)
+{
+    auto usages = computeVarUsage();
+
+    for (const auto& v: usages) {
+        auto phiset = computeDFIterable(v.second, df);
+        for (auto bb: phiset) {
+            InstrOperand *lhs = new InstrOperand(v.first);
+            Instr *phi = new Instr(lhs, InstrOp::PHI);
+            phi->phiRhs.insert(phi->phiRhs.begin(), bb->preds.size(), v.first);
+            bb->instrs.insert(bb->instrs.begin(), phi);
+        }
+    }
+}
+
 void CFG::toSsa()
 {
-    std::vector<BasicBlock*> preorder(bbs.size());
-    std::vector<BasicBlock*> postorder(bbs.size());
+    std::vector<BasicBlock*> preorder;
+    std::vector<BasicBlock*> postorder;
     unvisitBBs();
     dfs(entryBB, &preorder, &postorder);
+    for (int i = 0; i < preorder.size(); i++) {
+        std::cout << preorder.at(i)->id << " ";
+    }
     computeDominators(preorder);
     auto df = computeDF(postorder);
+    placePhis(df);
 }
 
 static InstrOp mapToInstrOp(ASTArithOp op)
