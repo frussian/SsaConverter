@@ -89,9 +89,9 @@ std::ostream &operator<<(std::ostream &strm, Instr &ins) {
             for (int i = 0; i < ins.phiRhs.size(); i++) {
                 auto v = ins.phiRhs[i];
                 if (i == ins.phiRhs.size() - 1) {
-                    strm << v << ")";
+                    strm << *v << ")";
                 } else {
-                    strm << v << ", ";
+                    strm << *v << ", ";
                 }
             }
             break;

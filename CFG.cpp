@@ -158,7 +158,9 @@ void CFG::placePhis(std::map<BasicBlock*, std::set<BasicBlock*>> &df)
         for (auto bb: phiset) {
             InstrOperand *lhs = new InstrOperand(v.first);
             Instr *phi = new Instr(lhs, InstrOp::PHI);
-            phi->phiRhs.insert(phi->phiRhs.begin(), bb->preds.size(), v.first);
+            for (int i = 0; i < bb->preds.size(); i++) {
+                phi->phiRhs.push_back(new InstrOperand(v.first));
+            }
             bb->instrs.insert(bb->instrs.begin(), phi);
             bb->phis.push_back(phi);
         }
@@ -168,6 +170,7 @@ void CFG::placePhis(std::map<BasicBlock*, std::set<BasicBlock*>> &df)
 void CFG::traverse(BasicBlock *bb, std::string &var)
 {
     for (auto ins: bb->instrs) {
+
         if (ins->op != InstrOp::PHI) {
             if (ins->rhs1 && ins->rhs1->isIdent && ins->rhs1->name == var) {
                 ins->rhs1->ver = stack.front();
@@ -178,6 +181,7 @@ void CFG::traverse(BasicBlock *bb, std::string &var)
 
         if (ins->lhs && ins->lhs->isIdent && ins->lhs->name == var) {
             ins->lhs->ver = counter;
+            stack.push_front(counter);
             counter++;
         }
     }
@@ -185,10 +189,11 @@ void CFG::traverse(BasicBlock *bb, std::string &var)
     for (auto succ: bb->succs) {
         auto it = std::find(succ->preds.begin(), succ->preds.end(), bb);
         long index = it - succ->preds.begin();
+        std::cout << index << succ->preds.size() << std::endl;
         if (index != succ->preds.size()) {
             for (auto phi: succ->phis) {
                 if (phi->lhs->name == var) {
-                    phi->phiRhs[index] = var + "v_" + std::to_string(stack.front());
+                    phi->phiRhs[index]->ver = stack.front();
                 }
             }
         }
